@@ -1,0 +1,17 @@
+{
+  "name": "mediconsult",
+  "private": true,
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "dev:MediConsult-backend": "npm --workspace mediconsult-backend run dev",
+    "dev:mediconsult-web": "npm --workspace mediconsult-web run dev",
+    "dev:MediConsult-mobile": "npm --workspace mediconsult-mobile run start",
+    "dev:all": "concurrently \"npm run dev:MediConsult-backend\" \"npm run dev:mediconsult-web\"",
+    "seed": "npm --workspace mediconsult-backend run seed"
+  },
+  "devDependencies": {
+    "concurrently": "^8.0.0"
+  }
+}

@@ -1,0 +1,102 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  ADMIN
+  DOCTOR
+  PATIENT
+}
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  password  String
+  name      String?
+  role      UserRole @default(PATIENT)
+  approved  Boolean  @default(false) // doctors need admin approval
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // relations
+  refreshTokens       RefreshToken[]
+  deviceTokens        DeviceToken[]
+
+  // A doctor can have many consultations where they are the clinician
+  consultationsAsDoctor Consultation[] @relation("doctorConsultations")
+
+  // A user (patient-type) can own many Patient records (i.e. user account -> patient profile)
+  patientsOwned Patient[] @relation("ownerPatients")
+
+  messages Message[]
+}
+
+model RefreshToken {
+  id        String   @id @default(uuid())
+  token     String   @unique
+  user      User     @relation(fields: [userId], references: [id])
+  userId    String
+  createdAt DateTime @default(now())
+  expiresAt DateTime?
+  revoked   Boolean  @default(false)
+}
+
+model Patient {
+  id        String   @id @default(uuid())
+  name      String
+  dob       String?
+  meta      Json?
+
+  // owner is optional: links a Patient record to a User account
+  owner     User?    @relation("ownerPatients", fields: [ownerId], references: [id])
+  ownerId   String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // consultations referencing this patient
+  consultations Consultation[]
+}
+
+model Consultation {
+  id            String   @id @default(uuid())
+
+  // patient relation -> Patient model
+  patient       Patient  @relation(fields: [patientId], references: [id])
+  patientId     String
+
+  // clinician relation -> User model (doctor). Note relation name matches User.consultationsAsDoctor
+  clinician     User?    @relation("doctorConsultations", fields: [clinicianId], references: [id])
+  clinicianId   String?
+
+  status        String   @default("scheduled")
+  scheduledAt   DateTime?
+  notes         String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  messages      Message[]
+}
+
+model Message {
+  id             String   @id @default(uuid())
+  consultation   Consultation @relation(fields: [consultationId], references: [id])
+  consultationId String
+  author         User     @relation(fields: [authorId], references: [id])
+  authorId       String
+  body           String
+  createdAt      DateTime @default(now())
+}
+
+model DeviceToken {
+  id        String   @id @default(uuid())
+  token     String
+  user      User     @relation(fields: [userId], references: [id])
+  userId    String
+  updatedAt DateTime @default(now()) @updatedAt
+}
